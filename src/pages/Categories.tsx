@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Tag } from 'lucide-react';
+import { CategoryForm } from '@/components/forms/CategoryForm';
 
 export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -47,7 +49,10 @@ export default function Categories() {
             <h1 className="text-3xl font-bold">Catégories</h1>
             <p className="text-muted-foreground">Organisez vos transactions</p>
           </div>
-          <Button className="bg-gradient-to-r from-primary to-primary-glow">
+          <Button
+            className="bg-gradient-to-r from-primary to-primary-glow"
+            onClick={() => setFormOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle Catégorie
           </Button>
@@ -134,13 +139,29 @@ export default function Categories() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Tag className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">Aucune catégorie trouvée</p>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setFormOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Créer votre première catégorie
               </Button>
             </CardContent>
           </Card>
         )}
+
+        <CategoryForm
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          onSuccess={() => {
+            const fetchCategories = async () => {
+              try {
+                const data = await apiService.getCategories();
+                setCategories(data);
+              } catch (error) {
+                console.error('Error fetching categories:', error);
+              }
+            };
+            fetchCategories();
+          }}
+        />
       </div>
     </DashboardLayout>
   );

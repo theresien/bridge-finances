@@ -15,7 +15,7 @@ import {
 } from '@/types/api';
 
 // Update this with your Spring Boot backend URL
-const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 class ApiService {
   private token: string | null = null;
@@ -41,6 +41,9 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    console.log(`API Request: ${options.method || 'GET'} ${API_BASE_URL}${endpoint}`);
+    console.log('Request body:', options.body);
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
@@ -51,6 +54,7 @@ class ApiService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Network error' }));
+      console.error('API Error:', error);
       throw new Error(error.message || 'Request failed');
     }
 
@@ -59,37 +63,36 @@ class ApiService {
 
   // Auth endpoints
   async login(credentials: LoginRequest): Promise<AuthResponse> {
+    console.log('Login request:', credentials);
     const response = await this.request<ApiResponse<AuthResponse>>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
-    
+    console.log('Login response:', response);
+
     this.token = response.data.token;
     localStorage.setItem('auth_token', response.data.token);
-    
+
     return response.data;
   }
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
+    console.log('Register request:', data);
     const response = await this.request<ApiResponse<AuthResponse>>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    
+    console.log('Register response:', response);
+
     this.token = response.data.token;
     localStorage.setItem('auth_token', response.data.token);
-    
+
     return response.data;
   }
 
   logout(): void {
     this.token = null;
     localStorage.removeItem('auth_token');
-  }
-
-  async getCurrentUser(): Promise<User> {
-    const response = await this.request<ApiResponse<User>>('/auth/me');
-    return response.data;
   }
 
   // Account endpoints
@@ -127,8 +130,13 @@ class ApiService {
 
   // Transaction endpoints
   async getTransactions(): Promise<Transaction[]> {
-    const response = await this.request<ApiResponse<Transaction[]>>('/transactions');
-    return response.data;
+    const response = await this.request<ApiResponse<any>>('/transactions');
+    // Backend returns paginated data with { content: [], pageable: {...} }
+    if (response.data && Array.isArray(response.data.content)) {
+      return response.data.content;
+    }
+    // Fallback if it's a direct array
+    return Array.isArray(response.data) ? response.data : [];
   }
 
   async getTransaction(id: number): Promise<Transaction> {

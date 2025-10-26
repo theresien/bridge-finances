@@ -5,11 +5,26 @@ import { Budget } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Target } from 'lucide-react';
+import { Plus, Target, Trash2 } from 'lucide-react';
+import { BudgetForm } from '@/components/forms/BudgetForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 export default function Budgets() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [budgetToDelete, setBudgetToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchBudgets = async () => {
@@ -25,6 +40,29 @@ export default function Budgets() {
 
     fetchBudgets();
   }, []);
+
+  const fetchBudgets = async () => {
+    try {
+      const data = await apiService.getBudgets();
+      setBudgets(data);
+    } catch (error) {
+      console.error('Error fetching budgets:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!budgetToDelete) return;
+
+    try {
+      await apiService.deleteBudget(budgetToDelete);
+      toast.success('Budget supprimé avec succès');
+      setDeleteDialogOpen(false);
+      setBudgetToDelete(null);
+      fetchBudgets();
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors de la suppression');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -44,7 +82,10 @@ export default function Budgets() {
             <h1 className="text-3xl font-bold">Budgets</h1>
             <p className="text-muted-foreground">Suivez vos objectifs financiers</p>
           </div>
-          <Button className="bg-gradient-to-r from-primary to-primary-glow">
+          <Button
+            className="bg-gradient-to-r from-primary to-primary-glow"
+            onClick={() => setFormOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nouveau Budget
           </Button>
@@ -56,11 +97,24 @@ export default function Budgets() {
             const isOverBudget = percentage > 100;
 
             return (
-              <Card key={budget.id} className="hover:shadow-lg transition-shadow">
+              <Card key={budget.id} className="hover:shadow-lg transition-shadow group">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{budget.name}</CardTitle>
-                    <Target className="h-5 w-5 text-warning" />
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-warning" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          setBudgetToDelete(budget.id);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -101,7 +155,7 @@ export default function Budgets() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Target className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">Aucun budget trouvé</p>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => setFormOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Créer votre premier budget
                 </Button>
@@ -109,6 +163,29 @@ export default function Budgets() {
             </Card>
           )}
         </div>
+
+        <BudgetForm
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          onSuccess={fetchBudgets}
+        />
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+              <AlertDialogDescription>
+                Êtes-vous sûr de vouloir supprimer ce budget ? Cette action est irréversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

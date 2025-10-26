@@ -4,10 +4,11 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
-  updatedAt: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Account {
@@ -37,10 +38,10 @@ export interface Transaction {
   amount: number;
   type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
   description: string;
-  date: string;
-  accountId: number;
-  categoryId: number;
-  userId: number;
+  transactionDate: string;
+  accountId?: number;
+  categoryId?: number;
+  userId?: number;
   createdAt: string;
   updatedAt: string;
   account?: Account;
@@ -64,7 +65,7 @@ export interface Budget {
 
 // Auth DTOs
 export interface LoginRequest {
-  email: string;
+  usernameOrEmail: string;
   password: string;
 }
 
@@ -76,10 +77,14 @@ export interface RegisterRequest {
   lastName: string;
 }
 
+// Backend response format (data contains everything)
 export interface AuthResponse {
   token: string;
   type: string;
-  user: User;
+  id: number;
+  username: string;
+  email: string;
+  role: string;
 }
 
 // API Response wrapper
@@ -102,7 +107,7 @@ export interface CreateTransactionRequest {
   amount: number;
   type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
   description: string;
-  date: string;
+  transactionDate: string;
   accountId: number;
   categoryId: number;
 }

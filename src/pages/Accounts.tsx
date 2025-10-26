@@ -4,11 +4,26 @@ import { apiService } from '@/services/api';
 import { Account } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Wallet } from 'lucide-react';
+import { Plus, Wallet, Trash2 } from 'lucide-react';
+import { AccountForm } from '@/components/forms/AccountForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 export default function Accounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -24,6 +39,29 @@ export default function Accounts() {
 
     fetchAccounts();
   }, []);
+
+  const fetchAccounts = async () => {
+    try {
+      const data = await apiService.getAccounts();
+      setAccounts(data);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!accountToDelete) return;
+
+    try {
+      await apiService.deleteAccount(accountToDelete);
+      toast.success('Compte supprimé avec succès');
+      setDeleteDialogOpen(false);
+      setAccountToDelete(null);
+      fetchAccounts();
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors de la suppression');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -45,7 +83,10 @@ export default function Accounts() {
             <h1 className="text-3xl font-bold">Comptes</h1>
             <p className="text-muted-foreground">Gérez vos comptes bancaires</p>
           </div>
-          <Button className="bg-gradient-to-r from-primary to-primary-glow">
+          <Button
+            className="bg-gradient-to-r from-primary to-primary-glow"
+            onClick={() => setFormOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nouveau Compte
           </Button>
@@ -62,10 +103,23 @@ export default function Accounts() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {accounts.map((account) => (
-            <Card key={account.id} className="hover:shadow-lg transition-shadow">
+            <Card key={account.id} className="hover:shadow-lg transition-shadow group relative">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{account.type}</CardTitle>
-                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      setAccountToDelete(account.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 text-destructive" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1">
@@ -85,7 +139,7 @@ export default function Accounts() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">Aucun compte trouvé</p>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => setFormOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Créer votre premier compte
                 </Button>
@@ -93,6 +147,29 @@ export default function Accounts() {
             </Card>
           )}
         </div>
+
+        <AccountForm
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          onSuccess={fetchAccounts}
+        />
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+              <AlertDialogDescription>
+                Êtes-vous sûr de vouloir supprimer ce compte ? Cette action est irréversible et supprimera toutes les transactions associées.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

@@ -32,14 +32,14 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-  const totalIncome = transactions
-    .filter((t) => t.type === 'INCOME')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = transactions
-    .filter((t) => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const activeBudgets = budgets.length;
+  const totalBalance = Array.isArray(accounts) ? accounts.reduce((sum, acc) => sum + acc.balance, 0) : 0;
+  const totalIncome = Array.isArray(transactions)
+    ? transactions.filter((t) => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0)
+    : 0;
+  const totalExpenses = Array.isArray(transactions)
+    ? transactions.filter((t) => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0)
+    : 0;
+  const activeBudgets = Array.isArray(budgets) ? budgets.length : 0;
 
   if (isLoading) {
     return (
@@ -112,7 +112,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {accounts.slice(0, 5).map((account) => (
+                {Array.isArray(accounts) && accounts.slice(0, 5).map((account) => (
                   <div key={account.id} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{account.name}</p>
@@ -121,7 +121,7 @@ export default function Dashboard() {
                     <p className="font-semibold">{account.balance.toFixed(2)} {account.currency}</p>
                   </div>
                 ))}
-                {accounts.length === 0 && (
+                {(!Array.isArray(accounts) || accounts.length === 0) && (
                   <p className="text-center text-muted-foreground py-4">Aucun compte</p>
                 )}
               </div>
@@ -134,12 +134,12 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {transactions.slice(0, 5).map((transaction) => (
+                {Array.isArray(transactions) && transactions.slice(0, 5).map((transaction) => (
                   <div key={transaction.id} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{transaction.description}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(transaction.date).toLocaleDateString()}
+                        {new Date(transaction.transactionDate).toLocaleDateString()}
                       </p>
                     </div>
                     <p
@@ -152,7 +152,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                 ))}
-                {transactions.length === 0 && (
+                {(!Array.isArray(transactions) || transactions.length === 0) && (
                   <p className="text-center text-muted-foreground py-4">Aucune transaction</p>
                 )}
               </div>

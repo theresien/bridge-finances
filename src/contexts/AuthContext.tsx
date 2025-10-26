@@ -19,30 +19,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if user is already logged in
     const token = localStorage.getItem('auth_token');
-    if (token) {
-      apiService.getCurrentUser()
-        .then(setUser)
-        .catch(() => {
-          localStorage.removeItem('auth_token');
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
+    const userStr = localStorage.getItem('user_data');
+
+    if (token && userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        setUser(userData);
+      } catch (error) {
+        console.error('Failed to parse user data:', error);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+      }
     }
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await apiService.login({ email, password });
-    setUser(response.user);
+    const response = await apiService.login({ usernameOrEmail: email, password });
+    // Convert AuthResponse to User format
+    const userData = {
+      id: response.id,
+      username: response.username,
+      email: response.email,
+      role: response.role,
+    };
+    setUser(userData);
+    localStorage.setItem('user_data', JSON.stringify(userData));
   };
 
   const register = async (data: { username: string; email: string; password: string; firstName: string; lastName: string }) => {
     const response = await apiService.register(data);
-    setUser(response.user);
+    // Convert AuthResponse to User format
+    const userData = {
+      id: response.id,
+      username: response.username,
+      email: response.email,
+      role: response.role,
+    };
+    setUser(userData);
+    localStorage.setItem('user_data', JSON.stringify(userData));
   };
 
   const logout = () => {
     apiService.logout();
+    localStorage.removeItem('user_data');
     setUser(null);
   };
 
