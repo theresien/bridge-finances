@@ -1,32 +1,15 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useEffect, useState } from 'react';
-import { apiService } from '@/services/api';
-import { Category } from '@/types/api';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Tag } from 'lucide-react';
 import { CategoryForm } from '@/components/forms/CategoryForm';
+import { useCategories } from '@/hooks/useApi';
 
 export default function Categories() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await apiService.getCategories();
-        setCategories(data);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCategories();
-  }, []);
+  const { data: categories = [], isLoading } = useCategories();
 
   if (isLoading) {
     return (
@@ -150,17 +133,6 @@ export default function Categories() {
         <CategoryForm
           open={formOpen}
           onOpenChange={setFormOpen}
-          onSuccess={() => {
-            const fetchCategories = async () => {
-              try {
-                const data = await apiService.getCategories();
-                setCategories(data);
-              } catch (error) {
-                console.error('Error fetching categories:', error);
-              }
-            };
-            fetchCategories();
-          }}
         />
       </div>
     </DashboardLayout>

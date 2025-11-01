@@ -1,45 +1,83 @@
-import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { apiService } from '@/services/api';
-import { Account, Transaction, Budget } from '@/types/api';
-import { Wallet, TrendingUp, TrendingDown, Target } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, Activity } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useAccounts, useTransactions, useBudgets } from '@/hooks/useApi';
+import { useMemo } from 'react';
 
 export default function Dashboard() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
+  const { data: transactions = [], isLoading: transactionsLoading } = useTransactions();
+  const { data: budgets = [], isLoading: budgetsLoading } = useBudgets();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [accountsData, transactionsData, budgetsData] = await Promise.all([
-          apiService.getAccounts(),
-          apiService.getTransactions(),
-          apiService.getBudgets(),
-        ]);
-        setAccounts(accountsData);
-        setTransactions(transactionsData);
-        setBudgets(budgetsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setIsLoading(false);
-      }
+  const isLoading = accountsLoading || transactionsLoading || budgetsLoading;
+
+  // Calculate statistics from raw data
+  const stats = useMemo(() => {
+    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    const currentMonthTransactions = transactions.filter(t => {
+      const date = new Date(t.transactionDate);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+
+    const totalIncome = currentMonthTransactions
+      .filter(t => t.type === 'INCOME')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalExpenses = currentMonthTransactions
+      .filter(t => t.type === 'EXPENSE')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const netSavings = totalIncome - totalExpenses;
+    const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
+
+    return {
+      totalBalance,
+      totalIncome,
+      totalExpenses,
+      netSavings,
+      savingsRate,
+      accountCount: accounts.length,
+      transactionCount: transactions.length,
+      budgetCount: budgets.length,
     };
+  }, [accounts, transactions, budgets]);
 
-    fetchData();
-  }, []);
+  // Group transactions by category
+  const categoryStats = useMemo(() => {
+    const categoryMap = new Map<number, { name: string; amount: number; count: number; type: string }>();
 
-  const totalBalance = Array.isArray(accounts) ? accounts.reduce((sum, acc) => sum + acc.balance, 0) : 0;
-  const totalIncome = Array.isArray(transactions)
-    ? transactions.filter((t) => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0)
-    : 0;
-  const totalExpenses = Array.isArray(transactions)
-    ? transactions.filter((t) => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0)
-    : 0;
-  const activeBudgets = Array.isArray(budgets) ? budgets.length : 0;
+    transactions.forEach(t => {
+      if (!t.category) return;
+
+      const existing = categoryMap.get(t.category.id);
+      if (existing) {
+        existing.amount += t.amount;
+        existing.count += 1;
+      } else {
+        categoryMap.set(t.category.id, {
+          name: t.category.name,
+          amount: t.amount,
+          count: 1,
+          type: t.type,
+        });
+      }
+    });
+
+    return Array.from(categoryMap.values())
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+  }, [transactions]);
+
+  // Recent transactions
+  const recentTransactions = useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime())
+      .slice(0, 5);
+  }, [transactions]);
 
   if (isLoading) {
     return (
@@ -59,6 +97,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Vue d'ensemble de vos finances</p>
         </div>
 
+        {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card className="bg-gradient-to-br from-card to-primary/5 border-border/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -66,8 +105,8 @@ export default function Dashboard() {
               <Wallet className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalBalance.toFixed(2)} €</div>
-              <p className="text-xs text-muted-foreground">{accounts.length} comptes</p>
+              <div className="text-2xl font-bold">{stats.totalBalance.toLocaleString()} Ar</div>
+              <p className="text-xs text-muted-foreground">{stats.accountCount} comptes</p>
             </CardContent>
           </Card>
 
@@ -77,7 +116,7 @@ export default function Dashboard() {
               <TrendingUp className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-success">+{totalIncome.toFixed(2)} €</div>
+              <div className="text-2xl font-bold text-success">+{stats.totalIncome.toLocaleString()} Ar</div>
               <p className="text-xs text-muted-foreground">Ce mois</p>
             </CardContent>
           </Card>
@@ -88,7 +127,7 @@ export default function Dashboard() {
               <TrendingDown className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">-{totalExpenses.toFixed(2)} €</div>
+              <div className="text-2xl font-bold text-destructive">-{stats.totalExpenses.toLocaleString()} Ar</div>
               <p className="text-xs text-muted-foreground">Ce mois</p>
             </CardContent>
           </Card>
@@ -99,12 +138,69 @@ export default function Dashboard() {
               <Target className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{activeBudgets}</div>
+              <div className="text-2xl font-bold">{stats.budgetCount}</div>
               <p className="text-xs text-muted-foreground">Actifs</p>
             </CardContent>
           </Card>
         </div>
 
+        {/* Statistics */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Statistiques du Mois
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Nombre de transactions</span>
+                  <span className="font-semibold">{stats.transactionCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Épargne nette</span>
+                  <span className={`font-semibold ${stats.netSavings >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {stats.netSavings.toLocaleString()} Ar
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Taux d'épargne</span>
+                  <span className="font-semibold text-success">
+                    {stats.savingsRate.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Catégories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {categoryStats.map((cat, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{cat.name}</p>
+                      <p className="text-sm text-muted-foreground">{cat.count} transactions</p>
+                    </div>
+                    <p className={`font-semibold ${cat.type === 'INCOME' ? 'text-success' : 'text-destructive'}`}>
+                      {cat.type === 'INCOME' ? '+' : '-'}{cat.amount.toLocaleString()} Ar
+                    </p>
+                  </div>
+                ))}
+                {categoryStats.length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">Aucune donnée disponible</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Activity */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
@@ -112,16 +208,16 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {Array.isArray(accounts) && accounts.slice(0, 5).map((account) => (
+                {accounts.slice(0, 5).map((account) => (
                   <div key={account.id} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{account.name}</p>
                       <p className="text-sm text-muted-foreground">{account.type}</p>
                     </div>
-                    <p className="font-semibold">{account.balance.toFixed(2)} {account.currency}</p>
+                    <p className="font-semibold">{account.balance.toLocaleString()} {account.currency}</p>
                   </div>
                 ))}
-                {(!Array.isArray(accounts) || accounts.length === 0) && (
+                {accounts.length === 0 && (
                   <p className="text-center text-muted-foreground py-4">Aucun compte</p>
                 )}
               </div>
@@ -134,7 +230,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {Array.isArray(transactions) && transactions.slice(0, 5).map((transaction) => (
+                {recentTransactions.map((transaction) => (
                   <div key={transaction.id} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{transaction.description}</p>
@@ -148,11 +244,11 @@ export default function Dashboard() {
                       }`}
                     >
                       {transaction.type === 'INCOME' ? '+' : '-'}
-                      {transaction.amount.toFixed(2)} €
+                      {transaction.amount.toLocaleString()} Ar
                     </p>
                   </div>
                 ))}
-                {(!Array.isArray(transactions) || transactions.length === 0) && (
+                {recentTransactions.length === 0 && (
                   <p className="text-center text-muted-foreground py-4">Aucune transaction</p>
                 )}
               </div>

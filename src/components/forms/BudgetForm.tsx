@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { apiService } from '@/services/api';
-import { Category, CreateBudgetRequest } from '@/types/api';
+import { CreateBudgetRequest } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,6 +28,8 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useCategories, useCreateBudget } from '@/hooks/useApi';
+import { useMemo } from 'react';
 
 const budgetSchema = z.object({
   name: z.string().min(3, 'Le nom doit contenir au moins 3 caractères'),
@@ -45,12 +45,17 @@ type BudgetFormValues = z.infer<typeof budgetSchema>;
 interface BudgetFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
 }
 
-export function BudgetForm({ open, onOpenChange, onSuccess }: BudgetFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
+export function BudgetForm({ open, onOpenChange }: BudgetFormProps) {
+  const createBudget = useCreateBudget();
+  const { data: allCategories = [] } = useCategories();
+
+  // Only show expense categories for budgets
+  const categories = useMemo(() =>
+    allCategories.filter(cat => cat.type === 'EXPENSE'),
+    [allCategories]
+  );
 
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetSchema),
@@ -64,23 +69,7 @@ export function BudgetForm({ open, onOpenChange, onSuccess }: BudgetFormProps) {
     },
   });
 
-  useEffect(() => {
-    if (open) {
-      const fetchCategories = async () => {
-        try {
-          const data = await apiService.getCategories();
-          // Only show expense categories for budgets
-          setCategories(data.filter(cat => cat.type === 'EXPENSE'));
-        } catch (error) {
-          toast.error('Erreur lors du chargement des catégories');
-        }
-      };
-      fetchCategories();
-    }
-  }, [open]);
-
   const onSubmit = async (data: BudgetFormValues) => {
-    setIsLoading(true);
     try {
       const budgetData: CreateBudgetRequest = {
         name: data.name,
@@ -91,15 +80,12 @@ export function BudgetForm({ open, onOpenChange, onSuccess }: BudgetFormProps) {
         categoryId: parseInt(data.categoryId),
       };
 
-      await apiService.createBudget(budgetData);
+      await createBudget.mutateAsync(budgetData);
       toast.success('Budget créé avec succès');
       form.reset();
       onOpenChange(false);
-      onSuccess();
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la création du budget');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -133,7 +119,7 @@ export function BudgetForm({ open, onOpenChange, onSuccess }: BudgetFormProps) {
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Montant (€)</FormLabel>
+                  <FormLabel>Montant (Ar)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -207,7 +193,7 @@ export function BudgetForm({ open, onOpenChange, onSuccess }: BudgetFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Catégorie</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionnez une catégorie" />
@@ -234,12 +220,12 @@ export function BudgetForm({ open, onOpenChange, onSuccess }: BudgetFormProps) {
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isLoading}
+                disabled={createBudget.isPending}
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Création...' : 'Créer'}
+              <Button type="submit" disabled={createBudget.isPending}>
+                {createBudget.isPending ? 'Création...' : 'Créer'}
               </Button>
             </DialogFooter>
           </form>

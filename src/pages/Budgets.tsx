@@ -1,7 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useEffect, useState } from 'react';
-import { apiService } from '@/services/api';
-import { Budget } from '@/types/api';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -18,47 +16,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useBudgets, useDeleteBudget } from '@/hooks/useApi';
 
 export default function Budgets() {
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [budgetToDelete, setBudgetToDelete] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchBudgets = async () => {
-      try {
-        const data = await apiService.getBudgets();
-        setBudgets(data);
-      } catch (error) {
-        console.error('Error fetching budgets:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchBudgets();
-  }, []);
-
-  const fetchBudgets = async () => {
-    try {
-      const data = await apiService.getBudgets();
-      setBudgets(data);
-    } catch (error) {
-      console.error('Error fetching budgets:', error);
-    }
-  };
+  const { data: budgets = [], isLoading } = useBudgets();
+  const deleteBudget = useDeleteBudget();
 
   const handleDelete = async () => {
     if (!budgetToDelete) return;
 
     try {
-      await apiService.deleteBudget(budgetToDelete);
+      await deleteBudget.mutateAsync(budgetToDelete);
       toast.success('Budget supprimé avec succès');
       setDeleteDialogOpen(false);
       setBudgetToDelete(null);
-      fetchBudgets();
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la suppression');
     }
@@ -122,7 +97,7 @@ export default function Budgets() {
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-muted-foreground">Dépensé</span>
                       <span className={isOverBudget ? 'text-destructive font-semibold' : ''}>
-                        {budget.spent.toFixed(2)} € / {budget.amount.toFixed(2)} €
+                        {budget.spent.toLocaleString()} Ar / {budget.amount.toLocaleString()} Ar
                       </span>
                     </div>
                     <Progress
@@ -142,7 +117,7 @@ export default function Budgets() {
                   {isOverBudget && (
                     <div className="bg-destructive/10 border border-destructive/20 rounded-md p-2">
                       <p className="text-xs text-destructive font-medium">
-                        ⚠️ Budget dépassé de {(budget.spent - budget.amount).toFixed(2)} €
+                        Budget dépassé de {(budget.spent - budget.amount).toLocaleString()} Ar
                       </p>
                     </div>
                   )}
@@ -167,7 +142,6 @@ export default function Budgets() {
         <BudgetForm
           open={formOpen}
           onOpenChange={setFormOpen}
-          onSuccess={fetchBudgets}
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

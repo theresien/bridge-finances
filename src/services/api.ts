@@ -1,7 +1,7 @@
-import { 
-  ApiResponse, 
-  AuthResponse, 
-  LoginRequest, 
+import {
+  ApiResponse,
+  AuthResponse,
+  LoginRequest,
   RegisterRequest,
   User,
   Account,
@@ -11,7 +11,15 @@ import {
   Budget,
   CreateBudgetRequest,
   Category,
-  CreateCategoryRequest
+  CreateCategoryRequest,
+  DashboardSummary,
+  CategoryStatistics,
+  MonthlyTrend,
+  PeriodComparison,
+  Goal,
+  GoalProgress,
+  CreateGoalRequest,
+  UpdateGoalProgressRequest
 } from '@/types/api';
 
 // Update this with your Spring Boot backend URL
@@ -230,6 +238,116 @@ class ApiService {
     await this.request(`/categories/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Dashboard endpoints
+  async getDashboardSummary(period?: string): Promise<DashboardSummary> {
+    const endpoint = period ? `/dashboard/summary?period=${period}` : '/dashboard/summary';
+    const response = await this.request<ApiResponse<DashboardSummary>>(endpoint);
+    return response.data;
+  }
+
+  async getCategoryStatistics(period?: string, type?: 'INCOME' | 'EXPENSE'): Promise<CategoryStatistics[]> {
+    let endpoint = '/dashboard/category-statistics';
+    const params = new URLSearchParams();
+    if (period) params.append('period', period);
+    if (type) params.append('type', type);
+    if (params.toString()) endpoint += `?${params.toString()}`;
+
+    const response = await this.request<ApiResponse<CategoryStatistics[]>>(endpoint);
+    return response.data;
+  }
+
+  async getMonthlyTrends(months?: number): Promise<MonthlyTrend[]> {
+    const endpoint = months ? `/dashboard/monthly-trends?months=${months}` : '/dashboard/monthly-trends';
+    const response = await this.request<ApiResponse<MonthlyTrend[]>>(endpoint);
+    return response.data;
+  }
+
+  async getPeriodComparison(currentStart: string, currentEnd: string, previousStart: string, previousEnd: string): Promise<PeriodComparison> {
+    const params = new URLSearchParams({
+      currentStart,
+      currentEnd,
+      previousStart,
+      previousEnd
+    });
+    const response = await this.request<ApiResponse<PeriodComparison>>(`/dashboard/period-comparison?${params.toString()}`);
+    return response.data;
+  }
+
+  // Goals endpoints
+  async getGoals(): Promise<Goal[]> {
+    const response = await this.request<ApiResponse<Goal[]>>('/goals');
+    return response.data;
+  }
+
+  async getGoal(id: number): Promise<Goal> {
+    const response = await this.request<ApiResponse<Goal>>(`/goals/${id}`);
+    return response.data;
+  }
+
+  async createGoal(data: CreateGoalRequest): Promise<Goal> {
+    const response = await this.request<ApiResponse<Goal>>('/goals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  }
+
+  async updateGoal(id: number, data: Partial<CreateGoalRequest>): Promise<Goal> {
+    const response = await this.request<ApiResponse<Goal>>(`/goals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  }
+
+  async deleteGoal(id: number): Promise<void> {
+    await this.request(`/goals/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateGoalProgress(id: number, data: UpdateGoalProgressRequest): Promise<Goal> {
+    const response = await this.request<ApiResponse<Goal>>(`/goals/${id}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  }
+
+  async getGoalProgress(id: number): Promise<GoalProgress> {
+    const response = await this.request<ApiResponse<GoalProgress>>(`/goals/${id}/progress`);
+    return response.data;
+  }
+
+  async getActiveGoals(): Promise<Goal[]> {
+    const response = await this.request<ApiResponse<Goal[]>>('/goals/active');
+    return response.data;
+  }
+
+  async getCompletedGoals(): Promise<Goal[]> {
+    const response = await this.request<ApiResponse<Goal[]>>('/goals/completed');
+    return response.data;
+  }
+
+  async getGoalsByPriority(priority: 'LOW' | 'MEDIUM' | 'HIGH'): Promise<Goal[]> {
+    const response = await this.request<ApiResponse<Goal[]>>(`/goals/priority/${priority}`);
+    return response.data;
+  }
+
+  async completeGoal(id: number): Promise<Goal> {
+    const response = await this.request<ApiResponse<Goal>>(`/goals/${id}/complete`, {
+      method: 'PATCH',
+    });
+    return response.data;
+  }
+
+  async cancelGoal(id: number): Promise<Goal> {
+    const response = await this.request<ApiResponse<Goal>>(`/goals/${id}/cancel`, {
+      method: 'PATCH',
+    });
+    return response.data;
   }
 }
 

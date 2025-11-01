@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { apiService } from '@/services/api';
 import { CreateCategoryRequest } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useCreateCategory } from '@/hooks/useApi';
 
 const categorySchema = z.object({
   name: z.string().min(3, 'Le nom doit contenir au moins 3 caractères'),
@@ -43,7 +42,6 @@ type CategoryFormValues = z.infer<typeof categorySchema>;
 interface CategoryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
 }
 
 const PREDEFINED_COLORS = [
@@ -63,8 +61,8 @@ const PREDEFINED_ICONS = [
   '🏋️', '📚', '🍕', '☕', '🎯', '💼', '🏖️', '🐕',
 ];
 
-export function CategoryForm({ open, onOpenChange, onSuccess }: CategoryFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export function CategoryForm({ open, onOpenChange }: CategoryFormProps) {
+  const createCategory = useCreateCategory();
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
@@ -77,7 +75,6 @@ export function CategoryForm({ open, onOpenChange, onSuccess }: CategoryFormProp
   });
 
   const onSubmit = async (data: CategoryFormValues) => {
-    setIsLoading(true);
     try {
       const categoryData: CreateCategoryRequest = {
         name: data.name,
@@ -86,15 +83,12 @@ export function CategoryForm({ open, onOpenChange, onSuccess }: CategoryFormProp
         icon: data.icon,
       };
 
-      await apiService.createCategory(categoryData);
+      await createCategory.mutateAsync(categoryData);
       toast.success('Catégorie créée avec succès');
       form.reset();
       onOpenChange(false);
-      onSuccess();
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la création de la catégorie');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -216,12 +210,12 @@ export function CategoryForm({ open, onOpenChange, onSuccess }: CategoryFormProp
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isLoading}
+                disabled={createCategory.isPending}
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Création...' : 'Créer'}
+              <Button type="submit" disabled={createCategory.isPending}>
+                {createCategory.isPending ? 'Création...' : 'Créer'}
               </Button>
             </DialogFooter>
           </form>

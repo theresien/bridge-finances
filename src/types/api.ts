@@ -127,3 +127,89 @@ export interface CreateCategoryRequest {
   color: string;
   icon: string;
 }
+
+// Dashboard Analytics Types
+export interface DashboardSummary {
+  totalBalance: number;
+  totalIncome: number;
+  totalExpenses: number;
+  netSavings: number;
+  accountCount: number;
+  transactionCount: number;
+  budgetCount: number;
+  savingsRate: number;
+}
+
+export interface CategoryStatistics {
+  categoryId: number;
+  categoryName: string;
+  totalAmount: number;
+  transactionCount: number;
+  percentage: number;
+  type: 'INCOME' | 'EXPENSE';
+}
+
+export interface MonthlyTrend {
+  month: string;
+  year: number;
+  income: number;
+  expenses: number;
+  netSavings: number;
+}
+
+export interface PeriodComparison {
+  currentPeriodIncome: number;
+  previousPeriodIncome: number;
+  incomeChange: number;
+  incomeChangePercentage: number;
+  currentPeriodExpenses: number;
+  previousPeriodExpenses: number;
+  expenseChange: number;
+  expenseChangePercentage: number;
+  currentPeriodSavings: number;
+  previousPeriodSavings: number;
+  savingsChange: number;
+  savingsChangePercentage: number;
+}
+
+// Savings Goals Types
+export interface Goal {
+  id: number;
+  name: string;
+  description: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  category: string;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoalProgress {
+  goalId: number;
+  goalName: string;
+  targetAmount: number;
+  currentAmount: number;
+  remainingAmount: number;
+  progressPercentage: number;
+  daysRemaining: number;
+  requiredMonthlySavings: number;
+  status: 'ON_TRACK' | 'AT_RISK' | 'ACHIEVED';
+}
+
+export interface CreateGoalRequest {
+  name: string;
+  description: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  category: string;
+}
+
+export interface UpdateGoalProgressRequest {
+  amount: number;
+}

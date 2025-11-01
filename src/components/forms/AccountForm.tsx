@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { apiService } from '@/services/api';
 import { CreateAccountRequest } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useCreateAccount } from '@/hooks/useApi';
 
 const accountSchema = z.object({
   name: z.string().min(3, 'Le nom doit contenir au moins 3 caractères'),
@@ -43,11 +42,10 @@ type AccountFormValues = z.infer<typeof accountSchema>;
 interface AccountFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
 }
 
-export function AccountForm({ open, onOpenChange, onSuccess }: AccountFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export function AccountForm({ open, onOpenChange }: AccountFormProps) {
+  const createAccount = useCreateAccount();
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
@@ -55,12 +53,11 @@ export function AccountForm({ open, onOpenChange, onSuccess }: AccountFormProps)
       name: '',
       type: 'CHECKING',
       balance: '0',
-      currency: 'EUR',
+      currency: 'MGA',
     },
   });
 
   const onSubmit = async (data: AccountFormValues) => {
-    setIsLoading(true);
     try {
       const accountData: CreateAccountRequest = {
         name: data.name,
@@ -69,15 +66,12 @@ export function AccountForm({ open, onOpenChange, onSuccess }: AccountFormProps)
         currency: data.currency,
       };
 
-      await apiService.createAccount(accountData);
+      await createAccount.mutateAsync(accountData);
       toast.success('Compte créé avec succès');
       form.reset();
       onOpenChange(false);
-      onSuccess();
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la création du compte');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -163,11 +157,9 @@ export function AccountForm({ open, onOpenChange, onSuccess }: AccountFormProps)
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="MGA">MGA (Ar)</SelectItem>
                       <SelectItem value="EUR">EUR (€)</SelectItem>
                       <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="GBP">GBP (£)</SelectItem>
-                      <SelectItem value="CHF">CHF (Fr)</SelectItem>
-                      <SelectItem value="CAD">CAD ($)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -180,12 +172,12 @@ export function AccountForm({ open, onOpenChange, onSuccess }: AccountFormProps)
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isLoading}
+                disabled={createAccount.isPending}
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Création...' : 'Créer'}
+              <Button type="submit" disabled={createAccount.isPending}>
+                {createAccount.isPending ? 'Création...' : 'Créer'}
               </Button>
             </DialogFooter>
           </form>

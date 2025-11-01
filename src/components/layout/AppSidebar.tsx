@@ -1,4 +1,4 @@
-import { LayoutDashboard, ArrowLeftRight, Wallet, Target, Tag, LogOut } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, Target, Tag, Flag, LogOut } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -19,6 +19,7 @@ const menuItems = [
   { title: 'Transactions', url: '/transactions', icon: ArrowLeftRight },
   { title: 'Comptes', url: '/accounts', icon: Wallet },
   { title: 'Budgets', url: '/budgets', icon: Target },
+  { title: 'Objectifs', url: '/goals', icon: Flag },
   { title: 'Catégories', url: '/categories', icon: Tag },
 ];
 

@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { apiService } from '@/services/api';
-import { Account, Category, CreateTransactionRequest } from '@/types/api';
+import { CreateTransactionRequest } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,6 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useAccounts, useCategories, useCreateTransaction } from '@/hooks/useApi';
 
 const transactionSchema = z.object({
   amount: z.string().min(1, 'Le montant est requis'),
@@ -46,13 +45,12 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 interface TransactionFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
 }
 
-export function TransactionForm({ open, onOpenChange, onSuccess }: TransactionFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+export function TransactionForm({ open, onOpenChange }: TransactionFormProps) {
+  const createTransaction = useCreateTransaction();
+  const { data: accounts = [] } = useAccounts();
+  const { data: categories = [] } = useCategories();
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -66,26 +64,7 @@ export function TransactionForm({ open, onOpenChange, onSuccess }: TransactionFo
     },
   });
 
-  useEffect(() => {
-    if (open) {
-      const fetchData = async () => {
-        try {
-          const [accountsData, categoriesData] = await Promise.all([
-            apiService.getAccounts(),
-            apiService.getCategories(),
-          ]);
-          setAccounts(accountsData);
-          setCategories(categoriesData);
-        } catch (error) {
-          toast.error('Erreur lors du chargement des données');
-        }
-      };
-      fetchData();
-    }
-  }, [open]);
-
   const onSubmit = async (data: TransactionFormValues) => {
-    setIsLoading(true);
     try {
       const transactionData: CreateTransactionRequest = {
         amount: parseFloat(data.amount),
@@ -96,15 +75,12 @@ export function TransactionForm({ open, onOpenChange, onSuccess }: TransactionFo
         categoryId: parseInt(data.categoryId),
       };
 
-      await apiService.createTransaction(transactionData);
+      await createTransaction.mutateAsync(transactionData);
       toast.success('Transaction créée avec succès');
       form.reset();
       onOpenChange(false);
-      onSuccess();
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la création de la transaction');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -152,7 +128,7 @@ export function TransactionForm({ open, onOpenChange, onSuccess }: TransactionFo
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Montant (€)</FormLabel>
+                  <FormLabel>Montant (Ar)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -203,7 +179,7 @@ export function TransactionForm({ open, onOpenChange, onSuccess }: TransactionFo
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Compte</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionnez un compte" />
@@ -228,7 +204,7 @@ export function TransactionForm({ open, onOpenChange, onSuccess }: TransactionFo
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Catégorie</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionnez une catégorie" />
@@ -255,12 +231,12 @@ export function TransactionForm({ open, onOpenChange, onSuccess }: TransactionFo
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isLoading}
+                disabled={createTransaction.isPending}
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Création...' : 'Créer'}
+              <Button type="submit" disabled={createTransaction.isPending}>
+                {createTransaction.isPending ? 'Création...' : 'Créer'}
               </Button>
             </DialogFooter>
           </form>

@@ -1,7 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useEffect, useState } from 'react';
-import { apiService } from '@/services/api';
-import { Transaction } from '@/types/api';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';
@@ -17,47 +15,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useTransactions, useDeleteTransaction } from '@/hooks/useApi';
 
 export default function Transactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const data = await apiService.getTransactions();
-        setTransactions(data);
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTransactions();
-  }, []);
-
-  const fetchTransactions = async () => {
-    try {
-      const data = await apiService.getTransactions();
-      setTransactions(data);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-    }
-  };
+  const { data: transactions = [], isLoading } = useTransactions();
+  const deleteTransaction = useDeleteTransaction();
 
   const handleDelete = async () => {
     if (!transactionToDelete) return;
 
     try {
-      await apiService.deleteTransaction(transactionToDelete);
+      await deleteTransaction.mutateAsync(transactionToDelete);
       toast.success('Transaction supprimée avec succès');
       setDeleteDialogOpen(false);
       setTransactionToDelete(null);
-      fetchTransactions();
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la suppression');
     }
@@ -155,7 +130,6 @@ export default function Transactions() {
         <TransactionForm
           open={formOpen}
           onOpenChange={setFormOpen}
-          onSuccess={fetchTransactions}
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

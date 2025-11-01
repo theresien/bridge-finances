@@ -1,7 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useEffect, useState } from 'react';
-import { apiService } from '@/services/api';
-import { Account } from '@/types/api';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Wallet, Trash2 } from 'lucide-react';
@@ -17,47 +15,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useAccounts, useDeleteAccount } from '@/hooks/useApi';
 
 export default function Accounts() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      try {
-        const data = await apiService.getAccounts();
-        setAccounts(data);
-      } catch (error) {
-        console.error('Error fetching accounts:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAccounts();
-  }, []);
-
-  const fetchAccounts = async () => {
-    try {
-      const data = await apiService.getAccounts();
-      setAccounts(data);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-    }
-  };
+  const { data: accounts = [], isLoading } = useAccounts();
+  const deleteAccount = useDeleteAccount();
 
   const handleDelete = async () => {
     if (!accountToDelete) return;
 
     try {
-      await apiService.deleteAccount(accountToDelete);
+      await deleteAccount.mutateAsync(accountToDelete);
       toast.success('Compte supprimé avec succès');
       setDeleteDialogOpen(false);
       setAccountToDelete(null);
-      fetchAccounts();
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la suppression');
     }
@@ -151,7 +126,6 @@ export default function Accounts() {
         <AccountForm
           open={formOpen}
           onOpenChange={setFormOpen}
-          onSuccess={fetchAccounts}
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
