@@ -1,0 +1,88 @@
+bridge-finances git:main*                                                                       
+❯ git add .                                
+bridge-finances git:main*                                                                       
+❯ git commit -m "modification dashboard"
+
+[main 2dbcbac] modification dashboard
+ 15 files changed, 1341 insertions(+), 277 deletions(-)
+ create mode 100644 src/hooks/useApi.ts
+ create mode 100644 src/pages/Goals.tsx
+bridge-finances git:main                                                                        
+❯ git push                              
+To https://github.com/theresien/bridge-finances.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/theresien/bridge-finances.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+bridge-finances git:main                                                                        
+❯ git push
+
+To https://github.com/theresien/bridge-finances.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/theresien/bridge-finances.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+bridge-finances git:main                                                                        
+❯ 
+bridge-finances git:main                                                                        
+❯ git pull origin main --rebase
+
+remote: Enumerating objects: 11, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 7 (delta 4), reused 7 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (7/7), 12.87 KiB | 527.00 KiB/s, done.
+From https://github.com/theresien/bridge-finances
+ * branch            main       -> FETCH_HEAD
+   ebbf81c..2abc384  main       -> origin/main
+Successfully rebased and updated refs/heads/main.
+bridge-finances git:main                                                                        
+❯ git push origin main
+
+Enumerating objects: 47, done.
+Counting objects: 100% (47/47), done.
+Delta compression using up to 12 threads
+Compressing objects: 100% (23/23), done.
+Writing objects: 100% (25/25), 12.22 KiB | 12.22 MiB/s, done.
+Total 25 (delta 14), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (14/14), completed with 14 local objects.
+To https://github.com/theresien/bridge-finances.git
+   2abc384..80713ca  main -> main
+bridge-finances git:main                                                                        
+❯ npm run dev                           
+
+> vite_react_shadcn_ts@0.0.0 dev
+> vite
+
+Re-optimizing dependencies because lockfile has changed
+Port 8080 is in use, trying another one...
+
+  VITE v5.4.19  ready in 165 ms
+
+  ➜  Local:   http://localhost:8081/
+  ➜  Network: http://192.168.137.64:8081/
+  ➜  press h + enter to show help
+^C
+bridge-finances git:main  16s                                                                   
+❯ npm run dev
+
+> vite_react_shadcn_ts@0.0.0 dev
+> vite
+
+Port 8080 is in use, trying another one...
+
+  VITE v5.4.19  ready in 154 ms
+
+  ➜  Local:   http://localhost:8081/
+  ➜  Network: http://192.168.137.64:8081/
+  ➜  press h + enter to show help
+^C
+bridge-finances git:main  63s       
+
+et apres ça, j'arrive plus à enter dans l'application ça dit falide fetch. je suis vraiment desolé. 

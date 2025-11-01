@@ -3,6 +3,9 @@ import { Wallet, TrendingUp, TrendingDown, Target, Activity } from 'lucide-react
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAccounts, useTransactions, useBudgets } from '@/hooks/useApi';
 import { useMemo } from 'react';
+import { ExpenseByCategoryChart } from '@/components/charts/ExpenseByCategoryChart';
+import { MonthlyIncomeExpensesChart } from '@/components/charts/MonthlyIncomeExpensesChart';
+import { SavingsTrendChart } from '@/components/charts/SavingsTrendChart';
 
 export default function Dashboard() {
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
@@ -48,17 +51,20 @@ export default function Dashboard() {
 
   // Group transactions by category
   const categoryStats = useMemo(() => {
-    const categoryMap = new Map<number, { name: string; amount: number; count: number; type: string }>();
+    const categoryMap = new Map<string, { name: string; amount: number; count: number; type: string }>();
 
     transactions.forEach(t => {
       if (!t.category) return;
 
-      const existing = categoryMap.get(t.category.id);
+      // Use category ID + type as key to separate income and expenses
+      const key = `${t.category.id}-${t.type}`;
+      const existing = categoryMap.get(key);
+
       if (existing) {
         existing.amount += t.amount;
         existing.count += 1;
       } else {
-        categoryMap.set(t.category.id, {
+        categoryMap.set(key, {
           name: t.category.name,
           amount: t.amount,
           count: 1,
@@ -198,6 +204,16 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <MonthlyIncomeExpensesChart transactions={transactions} />
+          <SavingsTrendChart transactions={transactions} />
+        </div>
+
+        <div className="grid gap-4">
+          <ExpenseByCategoryChart categoryStats={categoryStats} />
         </div>
 
         {/* Recent Activity */}

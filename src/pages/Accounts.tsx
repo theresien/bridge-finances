@@ -71,7 +71,7 @@ export default function Accounts() {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Solde Total</p>
-              <p className="text-4xl font-bold mt-2">{totalBalance.toFixed(2)} €</p>
+              <p className="text-4xl font-bold mt-2">{totalBalance.toLocaleString()} Ar</p>
             </div>
           </CardContent>
         </Card>
@@ -100,7 +100,7 @@ export default function Accounts() {
                 <div className="space-y-1">
                   <p className="text-xl font-bold">{account.name}</p>
                   <p className="text-2xl font-bold text-primary">
-                    {account.balance.toFixed(2)} {account.currency}
+                    {account.balance.toLocaleString()} {account.currency === 'MGA' ? 'Ar' : account.currency}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Créé le {new Date(account.createdAt).toLocaleDateString()}
